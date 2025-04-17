@@ -1,52 +1,46 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-contract Voting {
-    struct Candidate {
-        string name;
-        uint votes;
-    }
-
-    mapping(address => bool) public hasVoted;
-    mapping(uint => Candidate) public candidates;
-    uint public candidateCount;
-    address public owner;
+contract Lottery {
+    address payable public winner;
+    address payable[] public members;
+    address public manager;
 
     constructor() {
-        owner = msg.sender;
+        manager = msg.sender;
     }
 
-    function addCandidate(string memory _name) public payable {
-        require(msg.value == 0.1 ether, "Adding a candidate costs 0.1 ETH");
-        candidates[candidateCount] = Candidate(_name, 0);
-        candidateCount++;
-    }
-
-    function vote(uint _candidateIndex) public {
-        require(!hasVoted[msg.sender], "You can only vote once!");
-        require(_candidateIndex < candidateCount, "Invalid candidate index!");
-
-        candidates[_candidateIndex].votes++;
-        hasVoted[msg.sender] = true;
+    function join() public payable returns (bool) {
+        require(msg.value == 1 ether, "Please pay 1 ETH for join!");
+        members.push(payable(msg.sender));
+        return true;
     }
 
     function getBalance() public view returns (uint) {
+        //require(manager == msg.sender, "You cannot show the balance!");
         return address(this).balance;
     }
 
-    function getWinner() public view returns (string memory) {
-        require(msg.sender == owner, "Only the owner can determine the winner!");
+    function random() private view returns (uint) {
+        return
+            uint(
+                keccak256(
+                    abi.encodePacked(
+                        block.timestamp,
+                        block.difficulty, // Use block.difficulty in older versions
+                        msg.sender
+                    )
+                )
+            ) % members.length;
+    }
 
-        uint maxVotes = 0;
-        uint winnerIndex = 0;
+    function getWinner() public returns (address) {
+        require(manager == msg.sender, "You cannot roll the drum!");
 
-        for (uint i = 0; i < candidateCount; i++) {
-            if (candidates[i].votes > maxVotes) {
-                maxVotes = candidates[i].votes;
-                winnerIndex = i;
-            }
-        }
-
-        return candidates[winnerIndex].name;
+        uint index = random();
+        winner = members[index];
+        winner.transfer(getBalance());
+        members = new address payable[](0);
+        return winner;
     }
 }

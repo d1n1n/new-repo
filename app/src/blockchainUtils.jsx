@@ -1,164 +1,175 @@
 import { ethers } from "ethers";
 
-const contractAddress = "0x954cE5c579Eb27100b68065443F7DcA289bf6b1a"; // Replace with your contract address
-const abi = [
+const contractAddress = "0x819790897b6C4b9AcDBB0984c79641e84710A948"; // Replace with your contract address
+const abi =[
     {
-        "inputs": [],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
     },
     {
-        "inputs": [],
-        "name": "manager",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function",
-        "constant": true
+      "inputs": [],
+      "name": "manager",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
     },
     {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "name": "members",
-        "outputs": [
-            {
-                "internalType": "address payable",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function",
-        "constant": true
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "members",
+      "outputs": [
+        {
+          "internalType": "address payable",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
     },
     {
-        "inputs": [],
-        "name": "winner",
-        "outputs": [
-            {
-                "internalType": "address payable",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function",
-        "constant": true
+      "inputs": [],
+      "name": "winner",
+      "outputs": [
+        {
+          "internalType": "address payable",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
     },
     {
-        "inputs": [],
-        "name": "join",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "payable",
-        "type": "function",
-        "payable": true
+      "inputs": [],
+      "name": "join",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function",
+      "payable": true
     },
     {
-        "inputs": [],
-        "name": "getBalance",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function",
-        "constant": true
+      "inputs": [],
+      "name": "getBalance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
     },
     {
-        "inputs": [],
-        "name": "getWinner",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
+      "inputs": [],
+      "name": "getWinner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
     }
-];
-
-const getProvider = () => {
-    if (!window.ethereum) {
+  ];
+let provider = null;
+export const connectWallet = async () => {
+    if (typeof window.ethereum === "undefined") {
         alert("Please install MetaMask!");
         return null;
     }
-    return new ethers.BrowserProvider(window.ethereum);
-};
 
-export const getSigner = async () => {
     try {
-        return await getProvider()?.getSigner();
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+
+        if (!accounts || accounts.length === 0) {
+            throw new Error("No accounts found.");
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        return signer;
     } catch (error) {
         console.error("MetaMask connection error:", error);
+        alert("MetaMask connection error: " + error.message);
         return null;
     }
 };
 
-export const getContract = async () => {
-    const signer = await getSigner();
-    return signer ? new ethers.Contract(contractAddress, abi, signer) : null;
-};
+export const getContact = (signer) =>{
+    return new ethers.Contract(contractAddress,abi,signer);
+}
 
-const withContract = async (action) => {
-    const contract = await getContract();
-    if (!contract) return;
+export const enterLottery = async()=>{
+    const signer = await connectWallet();
+    if(!signer) return;
+
+    const contract = getContact(signer);
+
     try {
-        return await action(contract);
-    } catch (error) {
-        console.error("Contract interaction error:", error);
-    }
-};
-
-export const enterLottery = async () => {
-    await withContract(async (contract) => {
-        const tx = await contract.join({ value: ethers.parseEther("1.0") });
+        
+      
+        const tx = await contract.join({
+          value: ethers.utils.parseEther("1.0"), // Send 1 ETH
+        });
         await tx.wait();
         console.log("Transaction completed!");
-    });
-};
-
-export const getLotteryBalance = async () => {
-    return withContract(async (contract) => {
-        const balance = await contract.getBalance();
-        return ethers.formatEther(balance);
-    });
-};
-
-export const getMyBalance = async () => {
-    const provider = getProvider();
-    const signer = await getSigner();
-    const balance = await provider.getBalance(signer.getAddress());
-    return ethers.formatEther(balance);
-};
+      } catch (error) {
+        console.error("Contract interaction error:", error);
+      }
+}
 
 
-export const getWinner = async () => {
-    return withContract(async (contract) => {
-        const tx = await contract.getWinner();
-        tx.wait();
-        console.log(tx);
+export const getLotteryBalance = async()=>{
+    const signer = await connectWallet();
+    if(!signer) return;
 
-    });
-};
+    const contract = getContact(signer);
 
+    try {
+        const result = await contract.getBalance(); // Example for reading
+        console.log("Lottery balance:", ethers.formatEther(result));
+      } catch (error) {
+        console.error("Contract interaction error:", error);
+      }
+}
+
+
+export const getMyBalance = async()=>{
+    const signer = await connectWallet();
+    if(!signer) return;
+
+    const contract = getContact(signer);
+
+    try {
+        const result =provider.getBalance(signer.getAddress()); // Example for reading
+        console.log("My balance:", ethers.formatEther(result));
+      } catch (error) {
+        console.error("Contract interaction error:", error);
+      }
+}
